@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { Member } from '~/types'
+definePageMeta({
+  layout: 'dashboard',
+  middleware: ['auth'] // Asegúrate de que solo usuarios no autenticados puedan acceder
+})
 
 const { data: members } = await useFetch<Member[]>('/api/members', { default: () => [] })
 

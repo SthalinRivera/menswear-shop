@@ -10,6 +10,10 @@ const UButton = resolveComponent('UButton')
 const UBadge = resolveComponent('UBadge')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
+definePageMeta({
+  layout: 'dashboard',
+  middleware: ['guest'] // Asegúrate de que solo usuarios no autenticados puedan acceder
+})
 
 const toast = useToast()
 const table = useTemplateRef('table')
@@ -222,22 +226,12 @@ const pagination = ref({
 
     <template #body>
       <div class="flex flex-wrap items-center justify-between gap-1.5">
-        <UInput
-          v-model="email"
-          class="max-w-sm"
-          icon="i-lucide-search"
-          placeholder="Filter emails..."
-        />
+        <UInput v-model="email" class="max-w-sm" icon="i-lucide-search" placeholder="Filter emails..." />
 
         <div class="flex flex-wrap items-center gap-1.5">
           <CustomersDeleteModal :count="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
-            <UButton
-              v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
-              label="Delete"
-              color="error"
-              variant="subtle"
-              icon="i-lucide-trash"
-            >
+            <UButton v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length" label="Delete" color="error"
+              variant="subtle" icon="i-lucide-trash">
               <template #trailing>
                 <UKbd>
                   {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length }}
@@ -246,69 +240,44 @@ const pagination = ref({
             </UButton>
           </CustomersDeleteModal>
 
-          <USelect
-            v-model="statusFilter"
-            :items="[
-              { label: 'All', value: 'all' },
-              { label: 'Subscribed', value: 'subscribed' },
-              { label: 'Unsubscribed', value: 'unsubscribed' },
-              { label: 'Bounced', value: 'bounced' }
-            ]"
-            :ui="{ trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform duration-200' }"
-            placeholder="Filter status"
-            class="min-w-28"
-          />
-          <UDropdownMenu
-            :items="
-              table?.tableApi
-                ?.getAllColumns()
-                .filter((column: any) => column.getCanHide())
-                .map((column: any) => ({
-                  label: upperFirst(column.id),
-                  type: 'checkbox' as const,
-                  checked: column.getIsVisible(),
-                  onUpdateChecked(checked: boolean) {
-                    table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
-                  },
-                  onSelect(e?: Event) {
-                    e?.preventDefault()
-                  }
-                }))
-            "
-            :content="{ align: 'end' }"
-          >
-            <UButton
-              label="Display"
-              color="neutral"
-              variant="outline"
-              trailing-icon="i-lucide-settings-2"
-            />
+          <USelect v-model="statusFilter" :items="[
+            { label: 'All', value: 'all' },
+            { label: 'Subscribed', value: 'subscribed' },
+            { label: 'Unsubscribed', value: 'unsubscribed' },
+            { label: 'Bounced', value: 'bounced' }
+          ]" :ui="{ trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform duration-200' }"
+            placeholder="Filter status" class="min-w-28" />
+          <UDropdownMenu :items="table?.tableApi
+            ?.getAllColumns()
+            .filter((column: any) => column.getCanHide())
+            .map((column: any) => ({
+              label: upperFirst(column.id),
+              type: 'checkbox' as const,
+              checked: column.getIsVisible(),
+              onUpdateChecked(checked: boolean) {
+                table?.tableApi?.getColumn(column.id)?.toggleVisibility(!!checked)
+              },
+              onSelect(e?: Event) {
+                e?.preventDefault()
+              }
+            }))
+            " :content="{ align: 'end' }">
+            <UButton label="Display" color="neutral" variant="outline" trailing-icon="i-lucide-settings-2" />
           </UDropdownMenu>
         </div>
       </div>
 
-      <UTable
-        ref="table"
-        v-model:column-filters="columnFilters"
-        v-model:column-visibility="columnVisibility"
-        v-model:row-selection="rowSelection"
-        v-model:pagination="pagination"
-        :pagination-options="{
+      <UTable ref="table" v-model:column-filters="columnFilters" v-model:column-visibility="columnVisibility"
+        v-model:row-selection="rowSelection" v-model:pagination="pagination" :pagination-options="{
           getPaginationRowModel: getPaginationRowModel()
-        }"
-        class="shrink-0"
-        :data="data"
-        :columns="columns"
-        :loading="status === 'pending'"
-        :ui="{
+        }" class="shrink-0" :data="data" :columns="columns" :loading="status === 'pending'" :ui="{
           base: 'table-fixed border-separate border-spacing-0',
           thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
           tbody: '[&>tr]:last:[&>td]:border-b-0',
           th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
           td: 'border-b border-default',
           separator: 'h-0'
-        }"
-      />
+        }" />
 
       <div class="flex items-center justify-between gap-3 border-t border-default pt-4 mt-auto">
         <div class="text-sm text-muted">
@@ -317,12 +286,10 @@ const pagination = ref({
         </div>
 
         <div class="flex items-center gap-1.5">
-          <UPagination
-            :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+          <UPagination :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
             :items-per-page="table?.tableApi?.getState().pagination.pageSize"
             :total="table?.tableApi?.getFilteredRowModel().rows.length"
-            @update:page="(p: number) => table?.tableApi?.setPageIndex(p - 1)"
-          />
+            @update:page="(p: number) => table?.tableApi?.setPageIndex(p - 1)" />
         </div>
       </div>
     </template>

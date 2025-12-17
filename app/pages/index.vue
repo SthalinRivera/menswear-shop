@@ -1,69 +1,40 @@
 <script setup lang="ts">
-import { sub } from 'date-fns'
-import type { DropdownMenuItem } from '@nuxt/ui'
-import type { Period, Range } from '~/types'
+import type CatalogoProductosVue from '~/components/CatalogoProductos.vue';
 
-const { isNotificationsSlideoverOpen } = useDashboard()
-
-const items = [[{
-  label: 'New mail',
-  icon: 'i-lucide-send',
-  to: '/inbox'
-}, {
-  label: 'New customer',
-  icon: 'i-lucide-user-plus',
-  to: '/customers'
-}]] satisfies DropdownMenuItem[][]
-
-const range = shallowRef<Range>({
-  start: sub(new Date(), { days: 14 }),
-  end: new Date()
-})
-const period = ref<Period>('daily')
+const { data } = await useFetch("https://menswear-shop-api.vercel.app/api/v1/products")
 </script>
 
+
+
+
+
 <template>
-  <UDashboardPanel id="home">
-    <template #header>
-      <UDashboardNavbar title="Home" :ui="{ right: 'gap-3' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
+  <UContainer class="min-h-screen flex flex-col items-center justify-center text-center py-20">
 
-        <template #right>
-          <UTooltip text="Notifications" :shortcuts="['N']">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              square
-              @click="isNotificationsSlideoverOpen = true"
-            >
-              <UChip color="error" inset>
-                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
-              </UChip>
-            </UButton>
-          </UTooltip>
+    <!-- TÍTULO -->
+    <h1 class="text-4xl font-bold mb-4 text-gray-900 dark:text-white">
+      Próximamente: Nuestra Tienda Virtual
+    </h1>
 
-          <UDropdownMenu :items="items">
-            <UButton icon="i-lucide-plus" size="md" class="rounded-full" />
-          </UDropdownMenu>
-        </template>
-      </UDashboardNavbar>
+    <!-- DESCRIPCIÓN -->
+    <p class="text-gray-600 dark:text-gray-300 mb-8 max-w-xl">
+      Estamos preparando nuestro catálogo de ropa para que puedas explorar y comprar online.
+      Mantente atento a nuestras novedades.
+    </p>
 
-      <UDashboardToolbar>
-        <template #left>
-          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
-          <HomeDateRangePicker v-model="range" class="-ms-1" />
+    <!-- BOTONES Nuxt UI -->
+    <div class="flex gap-4 flex-wrap justify-center mb-12">
+      <UButton to="/catalogo" color="primary" variant="solid" size="lg">
+        Ver Catálogo
+      </UButton>
 
-          <HomePeriodSelect v-model="period" :range="range" />
-        </template>
-      </UDashboardToolbar>
-    </template>
+      <UButton to="/contacto" color="primary" variant="outline" size="lg">
+        Contáctanos
+      </UButton>
+    </div>
 
-    <template #body>
-      <HomeStats :period="period" :range="range" />
-      <HomeChart :period="period" :range="range" />
-      <HomeSales :period="period" :range="range" />
-    </template>
-  </UDashboardPanel>
+    <!-- COMPONENTE DEL CATÁLOGO -->
+    <CatalogoProductos :productos="data?.data" />
+
+  </UContainer>
 </template>

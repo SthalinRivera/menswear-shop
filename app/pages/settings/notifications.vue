@@ -6,6 +6,10 @@ const state = reactive<{ [key: string]: boolean }>({
   weekly_digest: false,
   important_updates: true
 })
+definePageMeta({
+  layout: 'dashboard',
+  middleware: ['guest'] // Asegúrate de que solo usuarios no autenticados puedan acceder
+})
 
 const sections = [{
   title: 'Notification channels',
