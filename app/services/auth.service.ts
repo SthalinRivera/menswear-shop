@@ -4,7 +4,12 @@ import type { LoginResponse, User, RegisterData, LoginData } from '~/types/auth'
 export const useAuthService = () => {
 
   const config = useRuntimeConfig()
-  const baseURL = config.public.API_BASE_URL || 'https://menswear-shop-api.vercel.app/api/v1'
+
+  const baseURL = config.public.apiBaseUrl
+  if (!baseURL) {
+    throw new Error('apiBaseUrl no está definida')
+  }
+
   console.log('AuthService initialized with baseURL:', baseURL)
 
   // Definir cookies aquí, accesibles para todos los métodos

@@ -13,7 +13,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      apiBaseUrl: process.env.API_BASE_URL || 'https://menswear-shop-api.vercel.app/api/v1'
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
     }
   },
 

@@ -473,9 +473,7 @@ const columns: TableColumn<Product>[] = [
     }
   }
 ]
-
-// Watchers para filtros
-watchEffect(async () => {
+const loadProducts = async () => {
   const params: any = {
     page: pagination.value.pageIndex + 1,
     limit: pagination.value.pageSize,
@@ -492,8 +490,25 @@ watchEffect(async () => {
   if (priceRange.value.max) params.maxPrice = priceRange.value.max
   if (statusFilter.value !== 'all') params.activo = statusFilter.value === 'active'
 
-  await getProducts(params)
-})
+  await refresh({ params })
+}
+// Watchers para filtros
+watch(
+  [
+    searchQuery,
+    selectedCategory,
+    selectedBrand,
+    selectedGender,
+    promotionFilter,
+    priceRange,
+    statusFilter,
+    sortBy,
+    sortOrder,
+    () => pagination.value.pageIndex,
+    () => pagination.value.pageSize
+  ],
+  loadProducts
+)
 </script>
 
 <template>
