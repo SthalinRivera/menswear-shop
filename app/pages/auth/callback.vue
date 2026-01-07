@@ -1,4 +1,5 @@
 <script setup lang="ts">
+//auth/callback.vue
 import { useRouter, useRoute } from 'vue-router'
 
 definePageMeta({

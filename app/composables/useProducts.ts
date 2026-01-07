@@ -14,47 +14,47 @@ export const useProducts = () => {
         const query = params
             ? `?${new URLSearchParams(params).toString()}`
             : ''
-        return useApiFetch<ProductsResponse>(`/api/v1/products${query}`)
+        return useApiFetch<ProductsResponse>(`/products${query}`)
     }
 
     const getProductById = (id: number) => {
-        return useApiFetch<Product>(`/api/v1/products/${id}`)
+        return useApiFetch<Product>(`/products/${id}`)
     }
 
     const createProduct = (productData: Partial<Product>) => {
-        return useApiFetch(`/api/v1/products`, {
+        return useApiFetch(`/products`, {
             method: 'POST',
             body: productData
         })
     }
 
     const updateProduct = (id: number, productData: Partial<Product>) => {
-        return useApiFetch(`/api/v1/products/${id}`, {
+        return useApiFetch(`/products/${id}`, {
             method: 'PUT',
             body: productData
         })
     }
 
     const deleteProduct = (id: number) => {
-        return useApiFetch(`/api/v1/products/${id}`, {
+        return useApiFetch(`/products/${id}`, {
             method: 'DELETE'
         })
     }
 
     const searchByBarcode = (barcode: string) => {
-        return useApiFetch<Product>(`/api/v1/products/barcode/${barcode}`)
+        return useApiFetch<Product>(`/products/barcode/${barcode}`)
     }
 
     // ========== VARIANTES ==========
     const createVariant = (producto_id: number, data: any) => {
-        return useApiFetch(`/api/v1/products/${producto_id}/variantes`, {
+        return useApiFetch(`/products/${producto_id}/variantes`, {
             method: 'POST',
             body: data
         })
     }
 
     const updateVariantStock = (variante_id: number, data: any) => {
-        return useApiFetch(`/api/v1/products/variantes/${variante_id}/stock`, {
+        return useApiFetch(`/products/variantes/${variante_id}/stock`, {
             method: 'PUT',
             body: data
         })
@@ -63,27 +63,27 @@ export const useProducts = () => {
     // ========== ESTADÍSTICAS ==========
     const getLowStockProducts = (limit?: number) => {
         return useApiFetch<Product[]>(
-            `/api/v1/products/stats/low-stock?limit=${limit}`
+            `/products/stats/low-stock?limit=${limit}`
         )
     }
 
     const getProductStats = () => {
         return useApiFetch<ProductStats>(
-            `/api/v1/products/stats/overview`
+            `/products/stats/overview`
         )
     }
 
     // ========== DATOS MAESTROS ==========
     const getCategories = () => {
-        return useApiFetch<Category[]>(`/api/categories`)
+        return useApiFetch<Category[]>(`/categories`)
     }
 
     const getBrands = () => {
-        return useApiFetch<Brand[]>(`/api/brands`)
+        return useApiFetch<Brand[]>(`/brands`)
     }
 
     const getWarehouses = () => {
-        return useApiFetch<Warehouse[]>(`/api/warehouses`)
+        return useApiFetch<Warehouse[]>(`/warehouses`)
     }
 
     return {

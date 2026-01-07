@@ -10,12 +10,25 @@ export const useAuthService = () => {
     throw new Error('apiBaseUrl no está definida')
   }
 
-  console.log('AuthService initialized with baseURL:', baseURL)
+  // 🍪 Cookies (IMPORTANTE)
+  const accessToken = useCookie('access_token', {
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  })
 
-  // Definir cookies aquí, accesibles para todos los métodos
-  const accessToken = useCookie('access_token')
-  const refreshTokenCookie = useCookie('refresh_token')
-  const userCookie = useCookie('user')
+  const refreshTokenCookie = useCookie('refresh_token', {
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  })
+
+  const userCookie = useCookie('user', {
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  })
+
 
   return {
     async login(credentials: LoginData): Promise<LoginResponse> {
@@ -26,8 +39,8 @@ export const useAuthService = () => {
       })
 
       if (response.success) {
-        accessToken.value = response.data.access_token
-        refreshTokenCookie.value = response.data.refresh_token
+        accessToken.value = response.data.accessToken
+        refreshTokenCookie.value = response.data.refreshToken
         userCookie.value = JSON.stringify(response.data.user)
       }
 
@@ -41,21 +54,16 @@ export const useAuthService = () => {
       }
 
       const token = accessToken.value
-      console.log('[AuthService] Token que se enviará al backend:', token)
-
       if (token) {
         const response = await $fetch(`${baseURL}/auth/logout`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
         })
-        console.log('[AuthService] Logout response:', response)
       }
 
       accessToken.value = null
       refreshTokenCookie.value = null
       userCookie.value = null
-
-      console.log('[AuthService] Cookies limpiadas')
     },
 
 
@@ -72,8 +80,8 @@ export const useAuthService = () => {
       })
 
       if (response.success) {
-        accessToken.value = response.data.access_token
-        refreshTokenCookie.value = response.data.refresh_token
+        accessToken.value = response.data.accessToken
+        refreshTokenCookie.value = response.data.refreshToken
       }
 
       return response
