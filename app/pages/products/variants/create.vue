@@ -1,388 +1,414 @@
 <template>
-    <div class="container mx-auto px-4 py-8">
-        <!-- Breadcrumb -->
-        <div class="mb-6">
-            <UBreadcrumb :items="breadcrumbItems" />
-        </div>
 
-        <!-- Encabezado -->
-        <UPageHeader>
-            <template #title>
-                <h1 class="text-3xl font-bold text-gray-900">Crear Variante</h1>
-            </template>
-            <template #description>
-                <p class="text-gray-600">
-                    Agregar nueva variante para: <strong>{{ product?.nombre }}</strong>
-                </p>
-            </template>
-            <template #actions>
-                <UButton color="gray" variant="outline" @click="cancel" class="mr-2">
-                    Cancelar
-                </UButton>
-                <UButton color="primary" :disabled="loading || !isFormValid" :loading="loading" @click="saveVariant">
-                    Crear Variante
-                </UButton>
-            </template>
-        </UPageHeader>
 
-        <!-- Alertas -->
-        <UAlert v-if="error" title="Error" :description="error" color="red" variant="subtle"
-            icon="i-heroicons-exclamation-triangle" class="my-6" />
-        <UAlert v-if="success" title="Éxito" description="Variante creada exitosamente" color="green" variant="subtle"
-            icon="i-heroicons-check-circle" class="my-6" />
 
-        <!-- Loading state -->
-        <div v-if="loadingProduct" class="text-center py-12">
-            <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 animate-spin text-primary mx-auto" />
-            <p class="mt-4 text-gray-600">Cargando información del producto...</p>
-        </div>
+    <UDashboardPanel id="create-product">
+        <template #header>
+            <UDashboardNavbar title="Nuevo Producto">
+                <template #leading>
+                    <UDashboardSidebarCollapse />
+                </template>
 
-        <!-- Contenido principal -->
-        <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-            <!-- Formulario de variante -->
-            <div class="space-y-6">
-                <UCard>
-                    <template #header>
-                        <h2 class="text-xl font-semibold text-gray-800">Información de la Variante</h2>
-                    </template>
+                <template #right>
+                    <UButton label="Cancelar" color="neutral" variant="ghost" to="/products" />
+                    <UButton label="Guardar producto" color="primary" @click="handleSaveProduct" />
+                </template>
+            </UDashboardNavbar>
+        </template>
+        <template #body>
+            <!-- Breadcrumb -->
+            <div class="mb-6">
+                <UBreadcrumb :items="breadcrumbItems" />
+            </div>
 
-                    <div class="space-y-4">
-                        <!-- Talla -->
-                        <UFormGroup label="Talla" required :error="errors.talla">
-                            <div class="space-y-2">
-                                <UInput v-model="form.talla" placeholder="Ej: S, M, L, XL, 30x32, 38, etc."
-                                    :ui="{ icon: { trailing: { pointer: '' } } }">
-                                    <template #trailing>
-                                        <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-400" />
-                                    </template>
-                                </UInput>
-                                <p class="text-xs text-gray-500">
-                                    Para productos sin talla, usa "Única", "Unica" o "Único"
-                                </p>
-                            </div>
-                        </UFormGroup>
+            <!-- Encabezado -->
+            <UPageHeader>
+                <template #title>
+                    <h1 class="text-3xl font-bold text-gray-900">Crear Variante</h1>
+                </template>
+                <template #description>
+                    <p class="text-gray-600">
+                        Agregar nueva variante para: <strong>{{ product?.nombre }}</strong>
+                    </p>
+                </template>
+                <template #actions>
+                    <UButton color="gray" variant="outline" @click="cancel" class="mr-2">
+                        Cancelar
+                    </UButton>
+                    <UButton color="primary" :disabled="loading || !isFormValid" :loading="loading"
+                        @click="saveVariant">
+                        Crear Variante
+                    </UButton>
+                </template>
+            </UPageHeader>
 
-                        <!-- Color -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <UFormGroup label="Nombre del Color" required :error="errors.color_nombre">
-                                <UInput v-model="form.color_nombre"
-                                    placeholder="Ej: Rojo, Azul Marino, Negro, Blanco..."
-                                    :ui="{ icon: { trailing: { pointer: '' } } }">
-                                    <template #trailing>
-                                        <UIcon name="i-heroicons-paint-brush" class="w-4 h-4 text-gray-400" />
-                                    </template>
-                                </UInput>
-                            </UFormGroup>
+            <!-- Alertas -->
+            <UAlert v-if="error" title="Error" :description="error" color="red" variant="subtle"
+                icon="i-heroicons-exclamation-triangle" class="my-6" />
+            <UAlert v-if="success" title="Éxito" description="Variante creada exitosamente" color="green"
+                variant="subtle" icon="i-heroicons-check-circle" class="my-6" />
 
-                            <UFormGroup label="Código HEX del Color">
-                                <div class="flex items-center gap-2">
-                                    <UInput v-model="form.color_hex" placeholder="#000000"
+            <!-- Loading state -->
+            <div v-if="loadingProduct" class="text-center py-12">
+                <UIcon name="i-heroicons-arrow-path" class="w-12 h-12 animate-spin text-primary mx-auto" />
+                <p class="mt-4 text-gray-600">Cargando información del producto...</p>
+            </div>
+
+            <!-- Contenido principal -->
+            <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
+                <!-- Formulario de variante -->
+                <div class="space-y-6">
+                    <UCard>
+                        <template #header>
+                            <h2 class="text-xl font-semibold text-gray-800">Información de la Variante</h2>
+                        </template>
+
+                        <div class="space-y-4">
+                            <!-- Talla -->
+                            <UFormGroup label="Talla" required :error="errors.talla">
+                                <div class="space-y-2">
+                                    <UInput v-model="form.talla" placeholder="Ej: S, M, L, XL, 30x32, 38, etc."
                                         :ui="{ icon: { trailing: { pointer: '' } } }">
                                         <template #trailing>
-                                            <div class="w-4 h-4 rounded-full border border-gray-300"
-                                                :style="{ backgroundColor: form.color_hex || '#ffffff' }" />
+                                            <UIcon name="i-heroicons-tag" class="w-4 h-4 text-gray-400" />
                                         </template>
                                     </UInput>
-                                    <UColorPicker v-model="form.color_hex" class="shrink-0" />
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">
-                                    Código hexadecimal (opcional)
-                                </p>
-                            </UFormGroup>
-                        </div>
-
-                        <!-- Código de barras -->
-                        <UFormGroup label="Código de Barras" required :error="errors.codigo_barras">
-                            <div class="space-y-2">
-                                <UInput v-model="form.codigo_barras" placeholder="Ej: 8801234560011"
-                                    :ui="{ icon: { trailing: { pointer: '' } } }">
-                                    <template #trailing>
-                                        <UIcon name="i-heroicons-qr-code" class="w-4 h-4 text-gray-400" />
-                                    </template>
-                                </UInput>
-                                <div class="flex items-center justify-between">
                                     <p class="text-xs text-gray-500">
-                                        Código EAN-13 o UPC recomendado
+                                        Para productos sin talla, usa "Única", "Unica" o "Único"
                                     </p>
-                                    <UButton size="xs" color="gray" variant="ghost" icon="i-heroicons-arrows-up-down"
-                                        @click="generateBarcode">
-                                        Generar
-                                    </UButton>
                                 </div>
-                            </div>
-                        </UFormGroup>
+                            </UFormGroup>
 
-                        <!-- Stock inicial -->
-                        <UFormGroup label="Stock Inicial" required :error="errors.stock_actual">
-                            <div class="space-y-2">
-                                <div class="flex items-center gap-2">
-                                    <UInput v-model="form.stock_actual" type="number" min="0"
+                            <!-- Color -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <UFormGroup label="Nombre del Color" required :error="errors.color_nombre">
+                                    <UInput v-model="form.color_nombre"
+                                        placeholder="Ej: Rojo, Azul Marino, Negro, Blanco..."
                                         :ui="{ icon: { trailing: { pointer: '' } } }">
                                         <template #trailing>
-                                            <UIcon name="i-heroicons-cube" class="w-4 h-4 text-gray-400" />
+                                            <UIcon name="i-heroicons-paint-brush" class="w-4 h-4 text-gray-400" />
                                         </template>
                                     </UInput>
-                                    <span class="text-gray-600">unidades</span>
-                                </div>
-                                <p class="text-xs text-gray-500">
-                                    Stock disponible al momento de crear la variante
-                                </p>
-                            </div>
-                        </UFormGroup>
+                                </UFormGroup>
 
-                        <!-- Precios especiales (opcional) -->
-                        <UFormGroup label="Precio Especial (opcional)">
-                            <div class="space-y-2">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <UInput v-model="form.precio_especial" type="number" min="0" step="0.01"
-                                        placeholder="Precio especial" :ui="{ icon: { leading: { pointer: '' } } }">
-                                        <template #leading>
-                                            <span class="text-gray-500">$</span>
-                                        </template>
-                                    </UInput>
-                                    <UInput v-model="form.costo_adicional" type="number" min="0" step="0.01"
-                                        placeholder="Costo adicional" :ui="{ icon: { leading: { pointer: '' } } }">
-                                        <template #leading>
-                                            <span class="text-gray-500">$</span>
-                                        </template>
-                                    </UInput>
-                                </div>
-                                <p class="text-xs text-gray-500">
-                                    Si se deja vacío, se usará el precio del producto base
-                                </p>
-                            </div>
-                        </UFormGroup>
-
-                        <!-- Almacén destino -->
-                        <UFormGroup label="Almacén Destino" required :error="errors.almacen_id">
-                            <div class="space-y-2">
-                                <USelect v-model="form.almacen_id" :options="warehouseOptions"
-                                    placeholder="Seleccionar almacén" option-attribute="label"
-                                    value-attribute="value" />
-                                <p class="text-xs text-gray-500">
-                                    Almacén donde se registrará el stock inicial
-                                </p>
-                            </div>
-                        </UFormGroup>
-
-                        <!-- Observaciones -->
-                        <UFormGroup label="Observaciones">
-                            <UTextarea v-model="form.observaciones"
-                                placeholder="Notas adicionales sobre esta variante..." :rows="3" />
-                        </UFormGroup>
-
-                        <!-- Estado -->
-                        <UFormGroup label="Estado">
-                            <URadioGroup v-model="form.activo">
-                                <URadio :value="true" label="Activa" />
-                                <URadio :value="false" label="Inactiva" />
-                            </URadioGroup>
-                        </UFormGroup>
-                    </div>
-                </UCard>
-
-                <!-- Resumen del producto -->
-                <UCard>
-                    <template #header>
-                        <h2 class="text-xl font-semibold text-gray-800">Producto Base</h2>
-                    </template>
-
-                    <div class="space-y-4">
-                        <div class="flex items-start gap-4">
-                            <div class="w-20 h-20 flex-shrink-0">
-                                <img v-if="product?.imagen_url" :src="product.imagen_url" :alt="product.nombre"
-                                    class="w-full h-full object-cover rounded-lg" />
-                                <div v-else
-                                    class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
-                                    <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
-                                </div>
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="font-medium text-gray-900">{{ product?.nombre }}</h3>
-                                <p class="text-sm text-gray-600 mt-1">{{ product?.descripcion?.substring(0, 100) }}...
-                                </p>
-                                <div class="flex items-center gap-4 mt-2">
-                                    <span class="text-sm text-gray-500">SKU: {{ product?.sku }}</span>
-                                    <span class="text-sm text-gray-500">Precio: ${{ product?.precio_venta }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Variantes existentes -->
-                        <div class="border-t pt-4">
-                            <h4 class="font-medium text-gray-700 mb-3">Variantes Existentes</h4>
-                            <div class="space-y-2 max-h-48 overflow-y-auto">
-                                <div v-for="variant in existingVariants" :key="variant.variante_id"
-                                    class="flex items-center justify-between p-2 border border-gray-200 rounded">
+                                <UFormGroup label="Código HEX del Color">
                                     <div class="flex items-center gap-2">
-                                        <span class="font-medium">{{ variant.talla }}</span>
-                                        <div class="w-3 h-3 rounded-full border border-gray-300"
-                                            :style="{ backgroundColor: variant.color_hex || '#cccccc' }" />
-                                        <span class="text-sm text-gray-600">{{ variant.color_nombre }}</span>
+                                        <UInput v-model="form.color_hex" placeholder="#000000"
+                                            :ui="{ icon: { trailing: { pointer: '' } } }">
+                                            <template #trailing>
+                                                <div class="w-4 h-4 rounded-full border border-gray-300"
+                                                    :style="{ backgroundColor: form.color_hex || '#ffffff' }" />
+                                            </template>
+                                        </UInput>
+                                        <UColorPicker v-model="form.color_hex" class="shrink-0" />
                                     </div>
-                                    <UBadge :color="variant.stock_actual > 0 ? 'green' : 'red'" variant="subtle"
-                                        size="sm">
-                                        {{ variant.stock_actual }}
-                                    </UBadge>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Código hexadecimal (opcional)
+                                    </p>
+                                </UFormGroup>
+                            </div>
+
+                            <!-- Código de barras -->
+                            <UFormGroup label="Código de Barras" required :error="errors.codigo_barras">
+                                <div class="space-y-2">
+                                    <UInput v-model="form.codigo_barras" placeholder="Ej: 8801234560011"
+                                        :ui="{ icon: { trailing: { pointer: '' } } }">
+                                        <template #trailing>
+                                            <UIcon name="i-heroicons-qr-code" class="w-4 h-4 text-gray-400" />
+                                        </template>
+                                    </UInput>
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-xs text-gray-500">
+                                            Código EAN-13 o UPC recomendado
+                                        </p>
+                                        <UButton size="xs" color="gray" variant="ghost"
+                                            icon="i-heroicons-arrows-up-down" @click="generateBarcode">
+                                            Generar
+                                        </UButton>
+                                    </div>
                                 </div>
-                                <p v-if="existingVariants.length === 0" class="text-sm text-gray-500 text-center">
-                                    No hay variantes registradas
-                                </p>
+                            </UFormGroup>
+
+                            <!-- Stock inicial -->
+                            <UFormGroup label="Stock Inicial" required :error="errors.stock_actual">
+                                <div class="space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <UInput v-model="form.stock_actual" type="number" min="0"
+                                            :ui="{ icon: { trailing: { pointer: '' } } }">
+                                            <template #trailing>
+                                                <UIcon name="i-heroicons-cube" class="w-4 h-4 text-gray-400" />
+                                            </template>
+                                        </UInput>
+                                        <span class="text-gray-600">unidades</span>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        Stock disponible al momento de crear la variante
+                                    </p>
+                                </div>
+                            </UFormGroup>
+
+                            <!-- Precios especiales (opcional) -->
+                            <UFormGroup label="Precio Especial (opcional)">
+                                <div class="space-y-2">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <UInput v-model="form.precio_especial" type="number" min="0" step="0.01"
+                                            placeholder="Precio especial" :ui="{ icon: { leading: { pointer: '' } } }">
+                                            <template #leading>
+                                                <span class="text-gray-500">$</span>
+                                            </template>
+                                        </UInput>
+                                        <UInput v-model="form.costo_adicional" type="number" min="0" step="0.01"
+                                            placeholder="Costo adicional" :ui="{ icon: { leading: { pointer: '' } } }">
+                                            <template #leading>
+                                                <span class="text-gray-500">$</span>
+                                            </template>
+                                        </UInput>
+                                    </div>
+                                    <p class="text-xs text-gray-500">
+                                        Si se deja vacío, se usará el precio del producto base
+                                    </p>
+                                </div>
+                            </UFormGroup>
+
+                            <!-- Almacén destino -->
+                            <UFormGroup label="Almacén Destino" required :error="errors.almacen_id">
+                                <div class="space-y-2">
+                                    <USelect v-model="form.almacen_id" :options="warehouseOptions"
+                                        placeholder="Seleccionar almacén" option-attribute="label"
+                                        value-attribute="value" />
+                                    <p class="text-xs text-gray-500">
+                                        Almacén donde se registrará el stock inicial
+                                    </p>
+                                </div>
+                            </UFormGroup>
+
+                            <!-- Observaciones -->
+                            <UFormGroup label="Observaciones">
+                                <UTextarea v-model="form.observaciones"
+                                    placeholder="Notas adicionales sobre esta variante..." :rows="3" />
+                            </UFormGroup>
+
+                            <!-- Estado -->
+                            <UFormGroup label="Estado">
+                                <URadioGroup v-model="form.activo">
+                                    <URadio :value="true" label="Activa" />
+                                    <URadio :value="false" label="Inactiva" />
+                                </URadioGroup>
+                            </UFormGroup>
+                        </div>
+                    </UCard>
+
+                    <!-- Resumen del producto -->
+                    <UCard>
+                        <template #header>
+                            <h2 class="text-xl font-semibold text-gray-800">Producto Base</h2>
+                        </template>
+
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-4">
+                                <div class="w-20 h-20 flex-shrink-0">
+                                    <img v-if="product?.imagen_url" :src="product.imagen_url" :alt="product.nombre"
+                                        class="w-full h-full object-cover rounded-lg" />
+                                    <div v-else
+                                        class="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <UIcon name="i-heroicons-photo" class="w-8 h-8 text-gray-400" />
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-medium text-gray-900">{{ product?.nombre }}</h3>
+                                    <p class="text-sm text-gray-600 mt-1">{{ product?.descripcion?.substring(0, 100)
+                                    }}...
+                                    </p>
+                                    <div class="flex items-center gap-4 mt-2">
+                                        <span class="text-sm text-gray-500">SKU: {{ product?.sku }}</span>
+                                        <span class="text-sm text-gray-500">Precio: ${{ product?.precio_venta }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Variantes existentes -->
+                            <div class="border-t pt-4">
+                                <h4 class="font-medium text-gray-700 mb-3">Variantes Existentes</h4>
+                                <div class="space-y-2 max-h-48 overflow-y-auto">
+                                    <div v-for="variant in existingVariants" :key="variant.variante_id"
+                                        class="flex items-center justify-between p-2 border border-gray-200 rounded">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium">{{ variant.talla }}</span>
+                                            <div class="w-3 h-3 rounded-full border border-gray-300"
+                                                :style="{ backgroundColor: variant.color_hex || '#cccccc' }" />
+                                            <span class="text-sm text-gray-600">{{ variant.color_nombre }}</span>
+                                        </div>
+                                        <UBadge :color="variant.stock_actual > 0 ? 'green' : 'red'" variant="subtle"
+                                            size="sm">
+                                            {{ variant.stock_actual }}
+                                        </UBadge>
+                                    </div>
+                                    <p v-if="existingVariants.length === 0" class="text-sm text-gray-500 text-center">
+                                        No hay variantes registradas
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </UCard>
-            </div>
+                    </UCard>
+                </div>
 
-            <!-- Vista previa y reglas -->
-            <div class="space-y-6">
-                <!-- Vista previa -->
-                <UCard>
-                    <template #header>
-                        <h2 class="text-xl font-semibold text-gray-800">Vista Previa</h2>
-                    </template>
+                <!-- Vista previa y reglas -->
+                <div class="space-y-6">
+                    <!-- Vista previa -->
+                    <UCard>
+                        <template #header>
+                            <h2 class="text-xl font-semibold text-gray-800">Vista Previa</h2>
+                        </template>
 
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
-                            <div class="text-center">
-                                <div
-                                    class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg">
-                                    <span class="font-medium">{{ form.talla || 'Talla' }}</span>
-                                    <div class="w-4 h-4 rounded-full border border-gray-300"
-                                        :style="{ backgroundColor: form.color_hex || '#cccccc' }" />
-                                    <span class="text-gray-600">{{ form.color_nombre || 'Color' }}</span>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-center p-6 bg-gray-50 rounded-lg">
+                                <div class="text-center">
+                                    <div
+                                        class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg">
+                                        <span class="font-medium">{{ form.talla || 'Talla' }}</span>
+                                        <div class="w-4 h-4 rounded-full border border-gray-300"
+                                            :style="{ backgroundColor: form.color_hex || '#cccccc' }" />
+                                        <span class="text-gray-600">{{ form.color_nombre || 'Color' }}</span>
+                                    </div>
+                                    <p class="mt-4 text-sm text-gray-600">
+                                        Código: {{ form.codigo_barras || 'Sin código' }}
+                                    </p>
+                                    <p class="text-sm text-gray-600">
+                                        Stock: {{ form.stock_actual || 0 }} unidades
+                                    </p>
                                 </div>
-                                <p class="mt-4 text-sm text-gray-600">
-                                    Código: {{ form.codigo_barras || 'Sin código' }}
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    Stock: {{ form.stock_actual || 0 }} unidades
-                                </p>
+                            </div>
+
+                            <!-- Resumen de datos -->
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="text-sm">
+                                        <span class="text-gray-500">Talla:</span>
+                                        <span class="ml-2 font-medium">{{ form.talla || 'No especificada' }}</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-500">Color:</span>
+                                        <span class="ml-2 font-medium">{{ form.color_nombre || 'No especificado'
+                                        }}</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="text-sm">
+                                        <span class="text-gray-500">Código:</span>
+                                        <span class="ml-2 font-medium">{{ form.codigo_barras || 'Sin código' }}</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-500">Stock:</span>
+                                        <span class="ml-2 font-medium">{{ form.stock_actual || 0 }} unidades</span>
+                                    </div>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">Almacén:</span>
+                                    <span class="ml-2 font-medium">
+                                        {{ selectedWarehouse?.nombre || 'No seleccionado' }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
+                    </UCard>
 
-                        <!-- Resumen de datos -->
+                    <!-- Reglas y validaciones -->
+                    <UCard>
+                        <template #header>
+                            <h2 class="text-xl font-semibold text-gray-800">Reglas y Validaciones</h2>
+                        </template>
+
                         <div class="space-y-3">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="text-sm">
-                                    <span class="text-gray-500">Talla:</span>
-                                    <span class="ml-2 font-medium">{{ form.talla || 'No especificada' }}</span>
-                                </div>
-                                <div class="text-sm">
-                                    <span class="text-gray-500">Color:</span>
-                                    <span class="ml-2 font-medium">{{ form.color_nombre || 'No especificado' }}</span>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="text-sm">
-                                    <span class="text-gray-500">Código:</span>
-                                    <span class="ml-2 font-medium">{{ form.codigo_barras || 'Sin código' }}</span>
-                                </div>
-                                <div class="text-sm">
-                                    <span class="text-gray-500">Stock:</span>
-                                    <span class="ml-2 font-medium">{{ form.stock_actual || 0 }} unidades</span>
+                            <div class="flex items-start gap-2">
+                                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Combinación única</p>
+                                    <p class="text-xs text-gray-600">
+                                        La combinación de talla y color debe ser única para este producto
+                                    </p>
                                 </div>
                             </div>
-                            <div class="text-sm">
-                                <span class="text-gray-500">Almacén:</span>
-                                <span class="ml-2 font-medium">
-                                    {{ selectedWarehouse?.nombre || 'No seleccionado' }}
-                                </span>
+
+                            <div class="flex items-start gap-2">
+                                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Código único</p>
+                                    <p class="text-xs text-gray-600">
+                                        El código de barras debe ser único en todo el sistema
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </UCard>
 
-                <!-- Reglas y validaciones -->
-                <UCard>
-                    <template #header>
-                        <h2 class="text-xl font-semibold text-gray-800">Reglas y Validaciones</h2>
-                    </template>
+                            <div class="flex items-start gap-2">
+                                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Stock mínimo</p>
+                                    <p class="text-xs text-gray-600">
+                                        El stock inicial puede ser 0 si el producto está agotado
+                                    </p>
+                                </div>
+                            </div>
 
-                    <div class="space-y-3">
-                        <div class="flex items-start gap-2">
-                            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">Combinación única</p>
-                                <p class="text-xs text-gray-600">
-                                    La combinación de talla y color debe ser única para este producto
+                            <div class="flex items-start gap-2">
+                                <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Almacén requerido</p>
+                                    <p class="text-xs text-gray-600">
+                                        Se debe seleccionar un almacén para registrar el stock
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Validación de combinación existente -->
+                            <div v-if="duplicateVariant" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <div class="flex items-center gap-2">
+                                    <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
+                                    <p class="text-sm font-medium text-red-700">
+                                        ¡Combinación existente!
+                                    </p>
+                                </div>
+                                <p class="text-xs text-red-600 mt-1">
+                                    Ya existe una variante con talla "{{ form.talla }}" y color "{{ form.color_nombre
+                                    }}"
                                 </p>
                             </div>
                         </div>
+                    </UCard>
 
-                        <div class="flex items-start gap-2">
-                            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">Código único</p>
-                                <p class="text-xs text-gray-600">
-                                    El código de barras debe ser único en todo el sistema
-                                </p>
-                            </div>
+                    <!-- Acciones rápidas -->
+                    <UCard>
+                        <template #header>
+                            <h2 class="text-xl font-semibold text-gray-800">Acciones Rápidas</h2>
+                        </template>
+
+                        <div class="space-y-3">
+                            <UButton block variant="outline" icon="i-heroicons-document-duplicate"
+                                @click="duplicateFromExisting">
+                                Duplicar de Existente
+                            </UButton>
+                            <UButton block variant="outline" icon="i-heroicons-bolt" @click="generateMultiple">
+                                Crear Múltiples Variantes
+                            </UButton>
+                            <UButton block variant="outline" icon="i-heroicons-arrow-left" @click="cancel">
+                                Volver al Producto
+                            </UButton>
                         </div>
-
-                        <div class="flex items-start gap-2">
-                            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">Stock mínimo</p>
-                                <p class="text-xs text-gray-600">
-                                    El stock inicial puede ser 0 si el producto está agotado
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-start gap-2">
-                            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">Almacén requerido</p>
-                                <p class="text-xs text-gray-600">
-                                    Se debe seleccionar un almacén para registrar el stock
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Validación de combinación existente -->
-                        <div v-if="duplicateVariant" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
-                                <p class="text-sm font-medium text-red-700">
-                                    ¡Combinación existente!
-                                </p>
-                            </div>
-                            <p class="text-xs text-red-600 mt-1">
-                                Ya existe una variante con talla "{{ form.talla }}" y color "{{ form.color_nombre }}"
-                            </p>
-                        </div>
-                    </div>
-                </UCard>
-
-                <!-- Acciones rápidas -->
-                <UCard>
-                    <template #header>
-                        <h2 class="text-xl font-semibold text-gray-800">Acciones Rápidas</h2>
-                    </template>
-
-                    <div class="space-y-3">
-                        <UButton block variant="outline" icon="i-heroicons-document-duplicate"
-                            @click="duplicateFromExisting">
-                            Duplicar de Existente
-                        </UButton>
-                        <UButton block variant="outline" icon="i-heroicons-bolt" @click="generateMultiple">
-                            Crear Múltiples Variantes
-                        </UButton>
-                        <UButton block variant="outline" icon="i-heroicons-arrow-left" @click="cancel">
-                            Volver al Producto
-                        </UButton>
-                    </div>
-                </UCard>
+                    </UCard>
+                </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </UDashboardPanel>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useToast } from '#imports'
+
+definePageMeta({
+    layout: 'dashboard',
+    middleware: ['auth']
+})
 
 const route = useRoute()
 const router = useRouter()
