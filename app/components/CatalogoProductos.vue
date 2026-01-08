@@ -1,24 +1,29 @@
 <script setup lang="ts">
 interface Producto {
-    producto_id: number
-    nombre: string
-    descripcion: string
-    precio_final: string
-    categoria_nombre: string
-    marca_nombre: string
-    imagenes: { url?: string }[]
+  producto_id: number
+  nombre: string
+  descripcion: string
+  precio_final: string
+  categoria_nombre: string
+  marca_nombre: string
+  imagenes: {
+    url: string
+    es_principal?: boolean
+  }[]
 }
 
 const props = defineProps<{
-    productos: Producto[]
+  productos: Producto[]
 }>()
 
-// Si no hay imagen → usa un placeholder
 const getImage = (p: Producto) => {
-    return p.imagenes?.[0]?.url || "https://placehold.co/400x400?text=Sin+Imagen"
+  // prioriza imagen principal
+  const principal = p.imagenes?.find(i => i.es_principal)
+  return principal?.url
+    || p.imagenes?.[0]?.url
+    || 'https://placehold.co/400x400?text=Sin+Imagen'
 }
 </script>
-
 <template>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-6">
         <UCard v-for="p in productos" :key="p.producto_id"

@@ -29,6 +29,9 @@ export const useProducts = () => {
     }
 
     const updateProduct = (id: number, productData: Partial<Product>) => {
+        console.log('🛠️ updateProduct()')
+        console.log('🆔 ID:', id)
+        console.log('📦 productData:', productData)
         return useApiFetch(`/products/${id}`, {
             method: 'PUT',
             body: productData

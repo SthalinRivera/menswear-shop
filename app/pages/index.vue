@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type CatalogoProductosVue from '~/components/CatalogoProductos.vue';
+const config = useRuntimeConfig()
 
-const { data } = await useFetch("https://menswear-shop-api.vercel.app/api/v1/products")
+const { data } = await useFetch(`${config.public.apiBaseUrl}/products`)
 </script>
 
 

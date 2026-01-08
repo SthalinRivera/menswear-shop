@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watchEffect } from 'vue'
-import { useProductImagesService } from '~/services/productImages.service'
-const { createProductImages } = useProductImagesService()
+
+
 definePageMeta({
     layout: 'dashboard',
     middleware: ['auth']
@@ -34,7 +34,6 @@ const previewImages = ref<
     { file: File; url: string; id: string }[]
 >([])
 const selectedImages = ref<File[]>([])
-const images = ref<File[]>([])
 
 /* ===============================
    Form
@@ -128,12 +127,7 @@ const processFiles = async (files: FileList) => {
             selectedImages.value.push(file)
         })
 }
-const handleImagesChange = (e: Event) => {
-    const target = e.target as HTMLInputElement
-    if (target.files) {
-        images.value = Array.from(target.files)
-    }
-}
+
 const removeImage = (index: number) => {
     URL.revokeObjectURL(previewImages.value[index].url)
     previewImages.value.splice(index, 1)
@@ -161,46 +155,19 @@ const handleSaveProduct = async () => {
         const { data, error } = await createProduct(productForm.value)
         if (error.value) throw error.value
         console.log('🚀 Product data:', data.value)
-        const productId = data.value?.data?.producto_id
-
+        const productId = data.value?.producto_id
         console.log('🚀 Product ID:', productId)
         if (!productId) throw new Error('No se obtuvo el ID del producto')
 
         // 2️⃣ Subir imágenes a Firebase
-        // if (selectedImages.value.length) {
-        //     console.log('📦 Imágenes a subir:', selectedImages.value)
-
-        //     const imageUrls = await uploadMultipleImages(
-        //         selectedImages.value,
-        //         productId
-        //     )
-
-        //     console.log('🔥 Imágenes subidas:', imageUrls)
-        //     // 👉 aquí luego llamas a tu endpoint si guardas imágenes en backend
-        // }
-        // 2️⃣ Subir imágenes a Firebase
         if (selectedImages.value.length) {
-
             const imageUrls = await uploadMultipleImages(
                 selectedImages.value,
-                productId
+                productId.toString()
             )
 
-            // 3️⃣ Preparar payload para backend
-            const imagesPayload = imageUrls.map((url, index) => ({
-                url,
-                es_principal: index === 0 // la primera es principal
-            }))
-
-            // 4️⃣ Guardar en DB
-            const { error: imageError } = await createProductImages({
-                producto_id: productId,
-                imagenes: imagesPayload
-            })
-
-            if (imageError.value) {
-                throw imageError.value
-            }
+            console.log('🔥 Imágenes subidas:', imageUrls)
+            // 👉 aquí luego llamas a tu endpoint si guardas imágenes en backend
         }
 
         toast.add({

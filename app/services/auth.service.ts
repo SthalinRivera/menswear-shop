@@ -7,9 +7,8 @@ export const useAuthService = () => {
 
   const baseURL = config.public.apiBaseUrl
   if (!baseURL) {
-    throw new Error('apiBaseUrl no está definida')
+    console.warn('[AuthService] apiBaseUrl no está definida')
   }
-
   // 🍪 Cookies (IMPORTANTE)
   const accessToken = useCookie('access_token', {
     sameSite: 'lax',
