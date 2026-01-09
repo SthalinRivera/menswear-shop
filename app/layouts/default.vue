@@ -4,7 +4,19 @@
       <!-- Izquierda -->
       <template #left>
         <NuxtLink to="/">
-          <img src="" alt="Logo Tienda" class="w-28 h-auto" />
+          <!-- Logo modo claro -->
+  <img
+    src="/logo-light.png"
+    alt="Logo Tienda"
+    class="w-28 h-auto block dark:hidden"
+  />
+
+  <!-- Logo modo oscuro -->
+  <img
+    src="/logo-dark.png"
+    alt="Logo Tienda"
+    class="w-28 h-auto hidden dark:block"
+  />
         </NuxtLink>
       </template>
 
@@ -40,7 +52,7 @@
       </template>
     </UHeader>
 
-    <main class="flex-1 flex items-center justify-center px-4 py-10">
+    <main class=" items-center justify-center px-4 py-10">
       <slot />
     </main>
 
@@ -49,3 +61,7 @@
     </footer>
   </div>
 </template>
+
+<script setup>
+
+</script>

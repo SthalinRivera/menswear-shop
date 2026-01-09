@@ -11,7 +11,7 @@
 
                 <template #right>
                     <UButton label="Cancelar" color="neutral" variant="ghost" to="/products" />
-                    <UButton label="Guardar producto" color="primary" @click="handleSaveProduct" />
+                    <UButton label="Guardar producto" color="primary" @click="saveVariant" />
                 </template>
             </UDashboardNavbar>
         </template>
@@ -147,46 +147,30 @@
                                 </div>
                             </UFormGroup>
 
-                            <!-- Precios especiales (opcional) -->
-                            <UFormGroup label="Precio Especial (opcional)">
-                                <div class="space-y-2">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <UInput v-model="form.precio_especial" type="number" min="0" step="0.01"
-                                            placeholder="Precio especial" :ui="{ icon: { leading: { pointer: '' } } }">
-                                            <template #leading>
-                                                <span class="text-gray-500">$</span>
-                                            </template>
-                                        </UInput>
-                                        <UInput v-model="form.costo_adicional" type="number" min="0" step="0.01"
-                                            placeholder="Costo adicional" :ui="{ icon: { leading: { pointer: '' } } }">
-                                            <template #leading>
-                                                <span class="text-gray-500">$</span>
-                                            </template>
-                                        </UInput>
-                                    </div>
-                                    <p class="text-xs text-gray-500">
-                                        Si se deja vacío, se usará el precio del producto base
-                                    </p>
-                                </div>
-                            </UFormGroup>
+
 
                             <!-- Almacén destino -->
                             <UFormGroup label="Almacén Destino" required :error="errors.almacen_id">
                                 <div class="space-y-2">
-                                    <USelect v-model="form.almacen_id" :options="warehouseOptions"
-                                        placeholder="Seleccionar almacén" option-attribute="label"
-                                        value-attribute="value" />
+                                    <select v-model="form.almacen_id" class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm
+           focus:border-primary-500 focus:ring-2 focus:ring-primary-500
+           disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                        <option disabled value="">
+                                            Seleccionar almacén
+                                        </option>
+
+                                        <option v-for="option in warehouseOptions" :key="option.value"
+                                            :value="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
                                     <p class="text-xs text-gray-500">
                                         Almacén donde se registrará el stock inicial
                                     </p>
                                 </div>
                             </UFormGroup>
 
-                            <!-- Observaciones -->
-                            <UFormGroup label="Observaciones">
-                                <UTextarea v-model="form.observaciones"
-                                    placeholder="Notas adicionales sobre esta variante..." :rows="3" />
-                            </UFormGroup>
+
 
                             <!-- Estado -->
                             <UFormGroup label="Estado">
@@ -409,16 +393,23 @@ definePageMeta({
     layout: 'dashboard',
     middleware: ['auth']
 })
+const config = useRuntimeConfig()
+
+const apiBase = config.public.apiBaseUrl
+
+
 
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
+const id = route.query.product_id
+
 // Breadcrumb items
 const breadcrumbItems = [
     { label: 'Dashboard', to: '/dashboard' },
     { label: 'Productos', to: '/dashboard/products' },
-    { label: 'Editar', to: `/dashboard/products/edit/${route.params.id}` },
+    { label: 'Editar', to: `/dashboard/products/edit/${id}` },
     { label: 'Crear Variante' }
 ]
 
@@ -439,10 +430,7 @@ const form = ref({
     color_hex: '#000000',
     codigo_barras: '',
     stock_actual: 0,
-    precio_especial: null,
-    costo_adicional: null,
     almacen_id: null,
-    observaciones: '',
     activo: true
 })
 
@@ -476,8 +464,8 @@ const selectedWarehouse = computed(() => {
 const fetchProduct = async () => {
     try {
         loadingProduct.value = true
-        const { data } = await useFetch(`/api/products/${route.params.id}`, {
-            baseURL: useRuntimeConfig().public.apiBase
+        const { data } = await useFetch(`/products/${id}`, {
+            baseURL: apiBase
         })
 
         if (data.value?.data) {
@@ -498,8 +486,8 @@ const fetchProduct = async () => {
 
 const fetchWarehouses = async () => {
     try {
-        const { data } = await useFetch('/api/warehouses', {
-            baseURL: useRuntimeConfig().public.apiBase
+        const { data } = await useFetch('/warehouses', {
+            baseURL: apiBase
         })
 
         if (data.value?.data) {
@@ -539,6 +527,8 @@ const validateForm = () => {
 }
 
 const saveVariant = async () => {
+    console.log('🟡 Iniciando guardado de variante')
+
     if (duplicateVariant.value) {
         toast.add({
             title: 'Advertencia',
@@ -551,7 +541,7 @@ const saveVariant = async () => {
     if (!validateForm()) {
         toast.add({
             title: 'Error de validación',
-            description: 'Por favor corrige los errores en el formulario',
+            description: 'Corrige los errores del formulario',
             color: 'red'
         })
         return
@@ -563,43 +553,38 @@ const saveVariant = async () => {
 
         const variantData = {
             ...form.value,
-            producto_id: parseInt(route.params.id)
+            producto_id: Number(id) // ✅ CORRECTO
         }
 
-        const { data, error: apiError } = await useFetch(`/api/products/${route.params.id}/variantes`, {
-            method: 'POST',
-            body: variantData,
-            baseURL: useRuntimeConfig().public.apiBase
+        console.log('📤 Enviando variante:', variantData)
+
+        const { data, error: apiError } = await useApiFetch(
+            `/products/${id}/variantes`,
+            {
+                method: 'POST',
+                body: variantData
+            }
+        )
+        console.log('📥 Respuesta:', data.value)
+        console.log('⚠️ Error API:', apiError.value)
+
+        if (apiError.value) throw apiError.value
+
+        success.value = true
+
+        toast.add({
+            title: 'Éxito',
+            description: 'Variante creada correctamente',
+            color: 'green'
         })
 
-        if (apiError.value) {
-            throw apiError.value
-        }
+        setTimeout(() => {
+            router.push(`/products`)
+        }, 1500)
 
-        if (data.value?.data) {
-            success.value = true
-
-            toast.add({
-                title: 'Éxito',
-                description: 'Variante creada correctamente',
-                color: 'green'
-            })
-
-            // Redirigir después de 2 segundos
-            setTimeout(() => {
-                router.push(`/dashboard/products/edit/${route.params.id}`)
-            }, 2000)
-        }
     } catch (err) {
+        console.error('🔥 Error al guardar variante:', err)
         error.value = 'Error al crear la variante'
-
-        // Manejar errores de validación del backend
-        if (err.data?.errors) {
-            errors.value = err.data.errors.reduce((acc, error) => {
-                acc[error.field] = error.message
-                return acc
-            }, {})
-        }
 
         toast.add({
             title: 'Error',
@@ -628,11 +613,11 @@ const duplicateFromExisting = () => {
 }
 
 const generateMultiple = () => {
-    router.push(`/dashboard/products/${route.params.id}/variants/multiple`)
+    router.push(`/dashboard/products/${id}/variants/multiple`)
 }
 
 const cancel = () => {
-    router.push(`/dashboard/products/edit/${route.params.id}`)
+    router.push(`/dashboard/products/edit/${id}`)
 }
 
 // Ciclo de vida

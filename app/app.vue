@@ -17,26 +17,28 @@ useHead({
   }
 })
 
-const title = 'menswear-shop'
-const description = 'Tieda de ropa en general'
+const title = 'Ricen Store'
+const description = 'Estilo urbano'
 
 useSeoMeta({
   title,
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/dashboard-light.png',
+  ogImage: '/og-ricen.png',
+  twitterImage: '/og-ricen.png',
   twitterCard: 'summary_large_image'
 })
 </script>
 
 <template>
-  <UApp>
-    <NuxtLoadingIndicator />
+  <ClientOnly>
+    <UApp>
+      <NuxtLoadingIndicator />
 
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </UApp>
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </UApp>
+  </ClientOnly>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { getPaginationRowModel } from '@tanstack/table-core'
+import { debounce } from 'lodash-es'
 
 const UAvatar = resolveComponent('UAvatar')
 const UButton = resolveComponent('UButton')
@@ -8,18 +8,16 @@ const UBadge = resolveComponent('UBadge')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
 const UTooltip = resolveComponent('UTooltip')
-const UModal = resolveComponent('UModal')
-const UInput = resolveComponent('UInput')
 const USelect = resolveComponent('USelect')
 
 const toast = useToast()
-const table = useTemplateRef('table')
 
-const { getProducts, getCategories, getBrands, deleteProduct } = useProducts()
+
+const { getProducts, getCategories, getBrands, deleteProduct, toggleProductStatus } = useProducts()
 
 definePageMeta({
   layout: 'dashboard',
-  middleware: ['auth'] // Cambié de 'guest' a 'auth' para proteger la página
+  middleware: ['auth']
 })
 
 // Filtros
@@ -29,7 +27,7 @@ const selectedBrand = ref('all')
 const selectedGender = ref('all')
 const promotionFilter = ref('all')
 const priceRange = ref({ min: '', max: '' })
-const statusFilter = ref('active')
+const statusFilter = ref('all')
 const sortBy = ref('fecha_creacion')
 const sortOrder = ref('desc')
 
@@ -39,49 +37,111 @@ const pagination = ref({
   pageSize: 20
 })
 
-// Datos
-const { data: productsData, refresh, pending } = await getProducts({
-  page: 1,
-  limit: 20,
-  sortBy: sortBy.value,
-  sortOrder: sortOrder.value
+// Datos reactivos
+const productsData = ref<any>(null)
+const categoriesData = ref<any>(null)
+const brandsData = ref<any>(null)
+const pending = ref(false)
+
+// Cargar datos iniciales
+onMounted(async () => {
+  await loadData()
 })
-console.log("productsData", productsData.value)
 
-const { data: categoriesData } = await getCategories()
-const { data: brandsData } = await getBrands()
+async function loadData() {
+  pending.value = true
+  try {
+    // Cargar categorías y marcas
+    const [categoriesRes, brandsRes] = await Promise.all([
+      getCategories(),
+      getBrands()
+    ])
 
-const data = computed(() => productsData.value?.data || [])
+    categoriesData.value = categoriesRes.data.value
+    brandsData.value = brandsRes.data.value
+
+    // Cargar productos
+    await loadProducts()
+  } catch (error) {
+    console.error('Error loading data:', error)
+    toast.add({
+      title: 'Error',
+      description: 'No se pudieron cargar los datos',
+      color: 'red'
+    })
+  } finally {
+    pending.value = false
+  }
+}
+
 const categories = computed(() => {
+  if (!categoriesData.value) return []
   return Array.isArray(categoriesData.value)
     ? categoriesData.value
-    : categoriesData.value?.data ?? []
+    : categoriesData.value?.data || []
 })
 
 const brands = computed(() => {
+  if (!brandsData.value) return []
   return Array.isArray(brandsData.value)
     ? brandsData.value
-    : brandsData.value?.data ?? []
+    : brandsData.value?.data || []
 })
+
+const data = computed(() => productsData.value?.data || [])
+const totalProducts = computed(() => productsData.value?.total || 0)
+const totalPages = computed(() => productsData.value?.total_pages || 1)
+
+// Función para cargar productos con parámetros
 const loadProducts = async () => {
-  const params: any = {
-    page: pagination.value.pageIndex + 1,
-    limit: pagination.value.pageSize,
-    sortBy: sortBy.value,
-    sortOrder: sortOrder.value
+  pending.value = true
+  try {
+    const params: any = {
+      page: pagination.value.pageIndex + 1,
+      limit: pagination.value.pageSize,
+      sortBy: sortBy.value,
+      sortOrder: sortOrder.value
+    }
+
+    if (searchQuery.value) params.q = searchQuery.value
+    if (selectedCategory.value !== 'all') params.categoria_id = selectedCategory.value
+    if (selectedBrand.value !== 'all') params.marca_id = selectedBrand.value
+    if (selectedGender.value !== 'all') params.genero = selectedGender.value
+    if (promotionFilter.value !== 'all') {
+      params.enPromocion = promotionFilter.value === 'promo'
+    }
+    if (priceRange.value.min) params.minPrice = parseFloat(priceRange.value.min)
+    if (priceRange.value.max) params.maxPrice = parseFloat(priceRange.value.max)
+    if (statusFilter.value !== 'all') {
+      params.activo = statusFilter.value === 'active'
+    }
+
+    const { data: result, error } = await getProducts(params)
+
+    if (error.value) {
+      throw error.value
+    }
+
+    productsData.value = result.value
+    console.log("Products loaded:", productsData.value)
+  } catch (error: any) {
+    console.error('Error loading products:', error)
+    toast.add({
+      title: 'Error',
+      description: error.message || 'Error al cargar productos',
+      color: 'red'
+    })
+  } finally {
+    pending.value = false
   }
-
-  if (searchQuery.value) params.q = searchQuery.value
-  if (selectedCategory.value !== 'all') params.categoria_id = selectedCategory.value
-  if (selectedBrand.value !== 'all') params.marca_id = selectedBrand.value
-  if (selectedGender.value !== 'all') params.genero = selectedGender.value
-  if (promotionFilter.value !== 'all') params.enPromocion = promotionFilter.value === 'promo'
-  if (priceRange.value.min) params.minPrice = priceRange.value.min
-  if (priceRange.value.max) params.maxPrice = priceRange.value.max
-  if (statusFilter.value !== 'all') params.activo = statusFilter.value === 'active'
-
-  await refresh({ params })
 }
+
+// Debounce para búsqueda
+const debouncedLoadProducts = debounce(() => {
+  // Resetear a página 1 cuando se aplica un filtro
+  pagination.value.pageIndex = 0
+  loadProducts()
+}, 300)
 
 // Watchers para filtros
 watch(
@@ -91,15 +151,41 @@ watch(
     selectedBrand,
     selectedGender,
     promotionFilter,
-    priceRange,
+    () => priceRange.value.min,
+    () => priceRange.value.max,
     statusFilter,
     sortBy,
-    sortOrder,
-    () => pagination.value.pageIndex,
-    () => pagination.value.pageSize
+    sortOrder
   ],
+  debouncedLoadProducts
+)
+function resetFilters() {
+  searchQuery.value = ''
+  selectedCategory.value = 'all'
+  selectedBrand.value = 'all'
+  selectedGender.value = 'all'
+  promotionFilter.value = 'all'
+  statusFilter.value = 'all'
+  priceRange.value = { min: '', max: '' }
+  sortBy.value = 'fecha_creacion'
+  sortOrder.value = 'desc'
+  pagination.value.pageIndex = 0
+
+  loadProducts()
+}
+// Watcher para paginación
+watch(
+  [() => pagination.value.pageIndex, () => pagination.value.pageSize],
   loadProducts
 )
+const selectedRowsCount = computed(() => {
+  return table?.tableApi?.getFilteredSelectedRowModel()?.rows?.length ?? 0
+})
+// Función para truncar descripción
+const truncateDescription = (text: string, maxLength: number = 20) => {
+  if (!text) return 'Sin descripción'
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+}
 
 async function handleDeleteProduct(product: any) {
   const confirmed = confirm(`¿Estás seguro de eliminar el producto "${product.nombre}"?`)
@@ -110,7 +196,7 @@ async function handleDeleteProduct(product: any) {
     if (error.value) throw error.value
 
     toast.add({ title: 'Producto eliminado', color: 'green' })
-    refresh()
+    await loadProducts()
   } catch (error: any) {
     toast.add({
       title: 'Error',
@@ -162,12 +248,30 @@ function getRowItems(row: any) {
     {
       label: row.original.activo ? 'Desactivar' : 'Activar',
       icon: row.original.activo ? 'i-lucide-toggle-left' : 'i-lucide-toggle-right',
-      onSelect() {
-        // Lógica para activar/desactivar
-        toast.add({
-          title: row.original.activo ? 'Producto desactivado' : 'Producto activado',
-          color: 'green'
-        })
+      onSelect: async () => {
+        try {
+          const nuevoEstado = !row.original.activo
+
+          const { error } = await toggleProductStatus(
+            row.original.producto_id,
+            nuevoEstado
+          )
+
+          if (error.value) throw error.value
+
+          toast.add({
+            title: nuevoEstado ? 'Producto activado' : 'Producto desactivado',
+            color: 'green'
+          })
+
+          loadProducts()
+        } catch (err: any) {
+          toast.add({
+            title: 'Error',
+            description: err.message || 'No se pudo cambiar el estado',
+            color: 'red'
+          })
+        }
       }
     },
     { type: 'separator' },
@@ -213,7 +317,9 @@ const columns: TableColumn<any>[] = [
     cell: ({ row }) => {
       return h('div', { class: 'flex flex-col gap-1' }, [
         h('p', { class: 'font-medium text-highlighted line-clamp-1' }, row.original.nombre),
-        h('p', { class: 'text-xs text-muted line-clamp-2' }, row.original.descripcion || 'Sin descripción')
+        h('p', { class: 'text-xs text-muted line-clamp-2' },
+          truncateDescription(row.original.descripcion)
+        )
       ])
     }
   },
@@ -226,41 +332,29 @@ const columns: TableColumn<any>[] = [
     header: 'Marca'
   },
   {
-    accessorKey: 'stock_total',
+    accessorKey: 'stock_total',  // ← CORRECTO
     header: 'Stock',
     cell: ({ row }) => {
-      const stock = Number(row.original.stock_total)
-      const minStock = row.original.stock_minimo
+      const stock = Number(row.original.stock_total) || 0  // ← Ahora busca "stock_total"
+      const minStock = Number(row.original.stock_minimo) || 5
 
-      let color = 'green'
-      let icon = 'i-lucide-check-circle'
-      let badgeColor: 'green' | 'yellow' | 'red' = 'green'
+      let color: 'green' | 'yellow' | 'red' = 'green'
 
-      if (stock === 0) {
-        color = 'red'
-        badgeColor = 'red'
-        icon = 'i-lucide-x-circle'
-      } else if (stock <= minStock) {
-        color = 'yellow'
-        badgeColor = 'yellow'
-        icon = 'i-lucide-alert-circle'
-      }
+      if (stock === 0) color = 'red'
+      else if (stock <= minStock) color = 'yellow'
 
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h('i', { class: `${icon} text-${color}-500 text-sm` }),
-        h(UBadge, {
-          variant: 'subtle',
-          color: badgeColor,
-          class: 'font-medium'
-        }, () => stock.toString())
-      ])
+      return h(UBadge, {
+        color: color,
+        variant: 'subtle',
+        class: 'font-medium px-3'
+      }, () => stock.toString())
     }
   },
   {
     accessorKey: 'precio_final',
     header: 'Precio',
     cell: ({ row }) => {
-      const price = parseFloat(row.original.precio_final)
+      const price = parseFloat(row.original.precio_final) || 0
       const promotionPrice = row.original.es_promocion && row.original.precio_promocion
         ? parseFloat(row.original.precio_promocion)
         : null
@@ -277,7 +371,7 @@ const columns: TableColumn<any>[] = [
           variant: 'subtle',
           color: 'green',
           class: 'text-xs'
-        }, () => `-${row.original.porcentaje_descuento}%`)
+        }, () => `-${row.original.porcentaje_descuento || 0}%`)
       ])
     }
   },
@@ -286,8 +380,8 @@ const columns: TableColumn<any>[] = [
     header: 'Variantes',
     cell: ({ row }) => {
       const variants = row.original.variantes?.length || 0
-      const colors = new Set(row.original.variantes?.map((v: any) => v.color_nombre)).size
-      const sizes = new Set(row.original.variantes?.map((v: any) => v.talla)).size
+      const colors = new Set(row.original.variantes?.map((v: any) => v.color_nombre) || []).size
+      const sizes = new Set(row.original.variantes?.map((v: any) => v.talla) || []).size
 
       return h(UTooltip, {
         content: `${variants} variantes • ${colors} colores • ${sizes} tallas`
@@ -336,6 +430,8 @@ const columns: TableColumn<any>[] = [
     }
   }
 ]
+
+
 </script>
 
 <template>
@@ -354,92 +450,127 @@ const columns: TableColumn<any>[] = [
 
     <template #body>
       <!-- Filtros -->
-      <div class="space-y-4 mb-6 p-4 bg-elevated/50 rounded-lg">
+
+      <div
+        class="space-y-4 mb-6 p-4 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+
+        <!-- Buscador / Categoría / Marca -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          <UInput v-model="searchQuery" icon="i-lucide-search" placeholder="Buscar productos..."
-            class="lg:col-span-2" />
+          <!-- Buscar -->
+          <input v-model="searchQuery" type="text" placeholder="Buscar productos..." class="lg:col-span-2 w-full rounded-md border px-3 py-2 text-sm
+             border-neutral-300 dark:border-neutral-700
+             bg-white dark:bg-neutral-800
+             focus:outline-none focus:ring-2 focus:ring-primary-500" />
 
-          <USelect v-model="selectedCategory"
-            :options="[{ value: 'all', label: 'Todas las categorías' }, ...categories]" option-attribute="nombre"
-            value-attribute="categoria_id" />
+          <!-- Categoría -->
+          <select v-model="selectedCategory" class="w-full rounded-md border px-3 py-2 text-sm
+             border-neutral-300 dark:border-neutral-700
+             bg-white dark:bg-neutral-800">
+            <option value="all">Todas las categorías</option>
+            <option v-for="c in categories" :key="c.categoria_id" :value="c.categoria_id">
+              {{ c.nombre }}
+            </option>
+          </select>
 
-          <USelect v-model="selectedBrand" :options="[{ value: 'all', label: 'Todas las marcas' }, ...brands]"
-            option-attribute="nombre" value-attribute="marca_id" />
+          <!-- Marca -->
+          <select v-model="selectedBrand" class="w-full rounded-md border px-3 py-2 text-sm
+             border-neutral-300 dark:border-neutral-700
+             bg-white dark:bg-neutral-800">
+            <option value="all">Todas las marcas</option>
+            <option v-for="b in brands" :key="b.marca_id" :value="b.marca_id">
+              {{ b.nombre }}
+            </option>
+          </select>
         </div>
 
+        <!-- Género / Promoción / Estado / Precio -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <USelect v-model="selectedGender" :options="[
-            { value: 'all', label: 'Todos los géneros' },
-            { value: 'Hombre', label: 'Hombre' },
-            { value: 'Mujer', label: 'Mujer' },
-            { value: 'Unisex', label: 'Unisex' },
-            { value: 'Niño', label: 'Niño' },
-            { value: 'Niña', label: 'Niña' }
-          ]" placeholder="Género" />
+          <select v-model="selectedGender" class="input">
+            <option value="all">Todos los géneros</option>
+            <option value="Hombre">Hombre</option>
+            <option value="Mujer">Mujer</option>
+            <option value="Unisex">Unisex</option>
+            <option value="Niño">Niño</option>
+            <option value="Niña">Niña</option>
+          </select>
 
-          <USelect v-model="promotionFilter" :options="[
-            { value: 'all', label: 'Todos' },
-            { value: 'promo', label: 'En promoción' },
-            { value: 'no-promo', label: 'Sin promoción' }
-          ]" placeholder="Promoción" />
+          <select v-model="promotionFilter" class="input">
+            <option value="all">Todos</option>
+            <option value="promo">En promoción</option>
+            <option value="no-promo">Sin promoción</option>
+          </select>
 
-          <USelect v-model="statusFilter" :options="[
-            { value: 'all', label: 'Todos' },
-            { value: 'active', label: 'Activos' },
-            { value: 'inactive', label: 'Inactivos' }
-          ]" placeholder="Estado" />
+          <select v-model="statusFilter" class="input">
+            <option value="all">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
 
-          <UInput v-model="priceRange.min" icon="i-lucide-dollar-sign" placeholder="Precio min" type="number" />
+          <input v-model="priceRange.min" type="number" placeholder="Precio min" class="input"
+            @keyup.enter="debouncedLoadProducts" />
 
-          <UInput v-model="priceRange.max" icon="i-lucide-dollar-sign" placeholder="Precio max" type="number" />
+          <input v-model="priceRange.max" type="number" placeholder="Precio max" class="input"
+            @keyup.enter="debouncedLoadProducts" />
         </div>
 
-        <div class="flex justify-between items-center">
+        <!-- Orden / Acciones -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <!-- Orden -->
           <div class="flex items-center gap-2">
-            <span class="text-sm text-muted">Ordenar por:</span>
-            <USelect v-model="sortBy" :options="[
-              { value: 'fecha_creacion', label: 'Fecha creación' },
-              { value: 'nombre', label: 'Nombre' },
-              { value: 'precio_final', label: 'Precio' },
-              { value: 'stock_total', label: 'Stock' }
-            ]" size="sm" class="w-40" />
-            <UButton :icon="sortOrder === 'asc' ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'" color="neutral"
-              variant="ghost" size="sm" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" />
+            <span class="text-sm text-neutral-500">Ordenar por:</span>
+
+            <select v-model="sortBy" class="input w-40">
+              <option value="fecha_creacion">Fecha creación</option>
+              <option value="nombre">Nombre</option>
+              <option value="precio_final">Precio</option>
+              <option value="stock_total">Stock</option>
+            </select>
+
+            <button class="px-2 py-1 rounded-md border border-neutral-300 dark:border-neutral-700"
+              @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'">
+              {{ sortOrder === 'asc' ? '↑' : '↓' }}
+            </button>
           </div>
 
+          <!-- Botones -->
           <div class="flex items-center gap-2">
-            <UButton icon="i-lucide-refresh-ccw" color="neutral" variant="ghost" size="sm" :loading="pending"
-              @click="refresh()" />
+            <button @click="resetFilters" class="text-sm px-3 py-2 rounded-md border
+               border-neutral-300 dark:border-neutral-700
+               hover:bg-neutral-100 dark:hover:bg-neutral-800">
+              Limpiar filtros
+            </button>
+
+            <button @click="loadProducts" :disabled="pending" class="text-sm px-3 py-2 rounded-md bg-primary-600 text-white
+               hover:bg-primary-700 disabled:opacity-50">
+              {{ pending ? 'Cargando...' : 'Actualizar' }}
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Tabla -->
-      <UTable ref="table" v-model:pagination="pagination" :pagination-options="{
-        getPaginationRowModel: getPaginationRowModel()
-      }" class="shrink-0" :data="data" :columns="columns" :loading="pending" :ui="{
-        base: 'border-separate border-spacing-0',
-        thead: '[&>tr]:bg-elevated/50',
-        tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-3 border-y border-default first:border-l last:border-r',
-        td: 'border-b border-default py-3',
-        separator: 'h-0'
-      }" />
-
+      <UTable ref="table" v-model:pagination="pagination" :data="data" :columns="columns" :loading="pending" />
       <!-- Paginación -->
-      <div class="flex items-center justify-between gap-3 border-t border-default pt-4 mt-4">
+
+      <div v-if="totalProducts > 0" class="flex items-center justify-between gap-3 border-t border-default pt-4 mt-4">
         <div class="text-sm text-muted">
-          {{ table?.tableApi?.getFilteredSelectedRowModel().rows.length || 0 }} de
-          {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} productos seleccionados.
+          Mostrando {{ (pagination.pageIndex * pagination.pageSize) + 1 }} a
+          {{ Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalProducts) }}
+          de {{ totalProducts }} productos
+
+          <span v-if="selectedRowsCount > 0">
+            • {{ selectedRowsCount }} seleccionados
+          </span>
         </div>
 
         <div class="flex items-center gap-1.5">
-          <UPagination :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
-            :items-per-page="table?.tableApi?.getState().pagination.pageSize"
-            :total="table?.tableApi?.getFilteredRowModel().rows.length"
-            @update:page="(p: number) => table?.tableApi?.setPageIndex(p - 1)" />
+          <UPagination :model-value="pagination.pageIndex + 1" :page-count="totalPages" :total="totalProducts"
+            :items-per-page="pagination.pageSize" @update:modelValue="(page) => pagination.pageIndex = page - 1" />
+
+          <USelect v-model="pagination.pageSize" :options="[10, 20, 50, 100]" size="xs" class="w-20" />
         </div>
       </div>
+
+
     </template>
   </UDashboardPanel>
 </template>

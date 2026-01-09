@@ -88,6 +88,13 @@ export const useProducts = () => {
     const getWarehouses = () => {
         return useApiFetch<Warehouse[]>(`/warehouses`)
     }
+    // Activar y desactivar producto
+    const toggleProductStatus = async (id: number, activo: boolean) => {
+        return useApiFetch(`/products/${id}/status`, {
+            method: 'PATCH',
+            body: { activo }
+        })
+    }
 
     return {
         getProducts,
@@ -102,6 +109,7 @@ export const useProducts = () => {
         getProductStats,
         getCategories,
         getBrands,
-        getWarehouses
+        getWarehouses,
+        toggleProductStatus
     }
 }
