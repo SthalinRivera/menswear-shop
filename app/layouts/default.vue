@@ -5,18 +5,17 @@
       <template #left>
         <NuxtLink to="/">
           <!-- Logo modo claro -->
-  <img
-    src="/logo-light.png"
-    alt="Logo Tienda"
-    class="w-28 h-auto block dark:hidden"
-  />
-
-  <!-- Logo modo oscuro -->
-  <img
-    src="/logo-dark.png"
-    alt="Logo Tienda"
-    class="w-28 h-auto hidden dark:block"
-  />
+          <img
+            src="/logo-light.png"
+            alt="Logo Tienda"
+            class="w-28 h-auto block dark:hidden"
+          />
+          <!-- Logo modo oscuro -->
+          <img
+            src="/logo-dark.png"
+            alt="Logo Tienda"
+            class="w-28 h-auto hidden dark:block"
+          />
         </NuxtLink>
       </template>
 
@@ -26,7 +25,24 @@
       <!-- Derecha -->
       <template #right>
         <UColorModeButton />
-
+        
+        <!-- Botón del carrito -->
+        <UButton 
+          icon="i-lucide-shopping-cart" 
+          color="neutral" 
+          variant="ghost" 
+          @click="openCart" 
+          class="relative"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span 
+            v-if="cartStore.totalItems > 0" 
+            class="absolute -top-1 -right-1 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+          >
+            {{ cartStore.totalItems }}
+          </span>
+        </UButton>
+        
         <!-- Botón móvil (solo icono) -->
         <UButton icon="i-lucide-log-in" color="neutral" variant="ghost" to="/login" class="lg:hidden" />
 
@@ -52,10 +68,13 @@
       </template>
     </UHeader>
 
-    <main class=" items-center justify-center px-4 py-10">
+    <main class="items-center justify-center py-10">
       <slot />
     </main>
 
+    <!-- Componente del carrito -->
+    <CartDrawer />
+    
     <footer class="bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 text-center py-6">
       © 2025 Tu Tienda de Ropa. Todos los derechos reservados.
     </footer>
@@ -63,5 +82,24 @@
 </template>
 
 <script setup>
+import { useCartStore } from '~/stores/cart'
 
+const cartStore = useCartStore()
+const colorMode = useColorMode()
+const isDark = computed(() => colorMode.value === 'dark')
+
+const toggleDark = () => {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
+}
+
+// Función para abrir el carrito
+const openCart = () => {
+  cartStore.initialize() // Cargar datos antes de abrir
+  cartStore.openCart()
+}
+
+// Inicializar carrito al montar
+onMounted(() => {
+  cartStore.initialize()
+})
 </script>

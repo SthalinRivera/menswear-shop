@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, watchEffect, computed } from 'vue'
+import { useCartStore } from '~/stores/cart'
 
 const route = useRoute()
+const toast = useToast()  // ¡Agrega esto!
 const id = route.params.id
 const config = useRuntimeConfig()
+const cartStore = useCartStore()
 
 // Fetch del producto
 const { data, pending, error } = await useFetch(
@@ -47,14 +50,44 @@ const prevImage = () => {
     galleryIndex.value = (galleryIndex.value - 1 + producto.value.imagenes.length) % producto.value.imagenes.length
 }
 
-// Agregar al carrito
+// Agregar al carrito - ¡CÓDIGO CORREGIDO!
 const addToCart = () => {
-    // Lógica para agregar al carrito
-    console.log('Agregando al carrito:', {
-        producto: producto.value,
-        variante: selectedVariant.value,
-        cantidad: quantity.value
-    })
+  if (!producto.value) return
+  
+  const itemToAdd = {
+    product_id: producto.value.producto_id,
+    nombre: producto.value.nombre,
+    precio_final: parseFloat(producto.value.precio_final),
+    cantidad: quantity.value,
+    sku: selectedVariant.value?.sku || producto.value.sku,
+    variante_id: selectedVariant.value?.variante_id,
+    color_nombre: selectedVariant.value?.color_nombre,
+    talla: selectedVariant.value?.talla,
+    imagen_url: selectedImage.value || producto.value.imagenes?.[0]?.url || '/placeholder-image.jpg'
+  }
+  
+  cartStore.addItem(itemToAdd)
+  
+  toast.add({
+    title: '¡Producto agregado!',
+    description: `${producto.value.nombre} se ha agregado al carrito`,
+    icon: 'i-lucide-check',
+    color: 'green'
+  })
+  
+  cartStore.openCart()
+}
+
+const incrementQuantity = () => {
+  if (selectedVariant.value && quantity.value < selectedVariant.value.stock_disponible) {
+    quantity.value++
+  }
+}
+
+const decrementQuantity = () => {
+  if (quantity.value > 1) {
+    quantity.value--
+  }
 }
 </script>
 
@@ -259,11 +292,12 @@ const addToCart = () => {
                                 <span class="text-lg font-semibold text-gray-900 dark:text-white">Cantidad:</span>
                                 <div class="flex items-center gap-3">
                                     <UButton icon="i-heroicons-minus" size="lg" color="gray" variant="outline"
-                                        @click="quantity > 1 ? quantity-- : null" :disabled="quantity <= 1" />
+                                        @click="decrementQuantity" :disabled="quantity <= 1" />
                                     <span class="w-16 text-center text-2xl font-bold text-gray-900 dark:text-white">{{
                                         quantity }}</span>
                                     <UButton icon="i-heroicons-plus" size="lg" color="gray" variant="outline"
-                                        @click="quantity++" />
+                                        @click="incrementQuantity" 
+                                        :disabled="selectedVariant && quantity >= selectedVariant.stock_disponible" />
                                 </div>
                             </div>
 
@@ -277,7 +311,8 @@ const addToCart = () => {
                                     Favorito
                                 </UButton>
                                 <UButton size="xl" color="primary" :ui="{ rounded: 'rounded-xl' }" class="flex-1"
-                                    @click="addToCart" :disabled="Number(producto.stock_total) === 0">
+                                    @click="addToCart" 
+                                    :disabled="!producto || Number(producto.stock_total) === 0 || (selectedVariant && selectedVariant.stock_disponible === 0)">
                                     <template #leading>
                                         <UIcon name="i-heroicons-shopping-cart" class="w-6 h-6" />
                                     </template>
@@ -386,14 +421,14 @@ const addToCart = () => {
                             <div class="space-y-3">
                                 <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Talla</p>
                                 <div class="flex flex-wrap gap-2">
-                                    <button v-for="v in [...new Set(producto.variantes.map(v => v.talla))]" :key="v"
+                                    <button v-for="talla in [...new Set(producto.variantes.map(v => v.talla))]" :key="talla"
                                         :class="[
                                             'px-4 py-2 text-sm font-medium rounded-lg border transition-colors',
-                                            selectedVariant?.talla === v
+                                            selectedVariant?.talla === talla
                                                 ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
                                                 : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                                        ]" @click="selectedVariant = producto.variantes.find(v => v.talla === v)">
-                                        {{ v }}
+                                        ]" @click="selectedVariant = producto.variantes.find(v => v.talla === talla)">
+                                        {{ talla }}
                                     </button>
                                 </div>
                             </div>
@@ -412,7 +447,7 @@ const addToCart = () => {
                                             'group-hover:border-gray-400 dark:group-hover:border-gray-500'
                                         ]" :style="{ backgroundColor: v.color_hex }" />
                                         <span
-                                            class="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                            class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
                                             {{ v.color_nombre }}
                                         </span>
                                     </button>
@@ -420,7 +455,7 @@ const addToCart = () => {
                             </div>
 
                             <!-- Grid de stock móvil -->
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-2 gap-3 mt-6">
                                 <div v-for="v in producto.variantes" :key="v.variante_id" :class="[
                                     'p-3 rounded-lg border transition-colors',
                                     v.stock_disponible > 0
@@ -455,11 +490,12 @@ const addToCart = () => {
                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Cantidad</p>
                             <div class="flex items-center gap-3">
                                 <UButton icon="i-heroicons-minus" size="sm" color="gray" variant="outline"
-                                    @click="quantity > 1 ? quantity-- : null" :disabled="quantity <= 1" />
+                                    @click="decrementQuantity" :disabled="quantity <= 1" />
                                 <span class="w-12 text-center text-lg font-bold text-gray-900 dark:text-white">{{
                                     quantity }}</span>
                                 <UButton icon="i-heroicons-plus" size="sm" color="gray" variant="outline"
-                                    @click="quantity++" />
+                                    @click="incrementQuantity" 
+                                    :disabled="selectedVariant && quantity >= selectedVariant.stock_disponible" />
                             </div>
                         </div>
                     </div>
@@ -468,23 +504,22 @@ const addToCart = () => {
                     <div
                         class="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg z-50">
                         <div class="flex items-center gap-3">
-                            <UButton icon="i-heroicons-heart" size="lg" color="gray" variant="outline"
-                                :ui="{ rounded: 'rounded-full', padding: { lg: 'p-3' } }" />
-                            <UButton size="lg" color="primary" class="flex-1" :ui="{ rounded: 'rounded-full' }"
-                                @click="addToCart" :disabled="Number(producto.stock_total) === 0">
-                                <template #leading>
-                                    <UIcon name="i-heroicons-shopping-cart" class="w-5 h-5" />
-                                </template>
-                                {{ Number(producto.stock_total) > 0 ? 'Agregar al carrito' : 'Agotado' }}
-                            </UButton>
+                      <!-- En tu página de producto, actualiza el botón de agregar al carrito: -->
+<button @click="addToCart" 
+        :disabled="!producto || Number(producto.stock_total) === 0"
+        class="w-full py-3 bg-black dark:bg-white text-white dark:text-black text-sm font-medium rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed">
+  <div class="flex items-center justify-center gap-2">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+    {{ Number(producto.stock_total) > 0 ? 'Agregar al carrito' : 'Agotado' }}
+  </div>
+</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-
-
     </div>
 </template>
 
