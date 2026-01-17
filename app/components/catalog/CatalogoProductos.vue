@@ -19,6 +19,10 @@ const props = defineProps<{
   productos: Producto[]
 }>()
 
+const cartStore = useCartStore()
+const toast = useToast()
+
+// Función para obtener la imagen principal
 const getImage = (p: Producto) => {
   const principal = p.imagenes?.find(i => i.es_principal)
   return principal?.url
@@ -52,13 +56,7 @@ watch(() => props.productos, (newProductos) => {
 }, { immediate: true })
 
 
-const cartStore = useCartStore()
 
-// Función para abrir el carrito
-const openCart = () => {
-  cartStore.initialize() // Cargar datos antes de abrir
-  cartStore.openCart()
-}
 </script>
 
 <template>
@@ -66,7 +64,7 @@ const openCart = () => {
     <NuxtLink v-for="(p, index) in productos" :key="p.producto_id" :to="`catalog/${p.producto_id}`" :class="[
       'group relative block bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm no-underline',
       !loadingStates[p.producto_id] ? 'hover:shadow-lg transition-all duration-300 hover:-translate-y-1' : 'pointer-events-none'
-    ]"> 
+    ]">
 
       <!-- Badge de descuento -->
       <div v-if="p.es_promocion && !loadingStates[p.producto_id]"
@@ -96,16 +94,6 @@ const openCart = () => {
           'absolute inset-0 w-full h-full object-contain p-2 sm:p-3 transition-opacity duration-300',
           loadingStates[p.producto_id] ? 'opacity-0' : 'opacity-100 group-hover:p-1.5'
         ]" @load="onImageLoad(p.producto_id)" @error="onImageError(p.producto_id)" loading="lazy" />
-
-        <!-- Botón rápido - solo en desktop y cuando la imagen está cargada -->
-        <button v-if="!loadingStates[p.producto_id]"
-          class="absolute bottom-2 right-2 hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 bg-white dark:bg-gray-900 rounded-full shadow-md items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 z-20"
-          @click.prevent>
-          <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 dark:text-white" fill="none" stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </button>
       </div>
 
       <!-- Contenido -->
@@ -158,48 +146,26 @@ const openCart = () => {
             </span>
           </div>
         </div>
-
-        <!-- Botón de agregar al carrito - solo cuando la imagen está cargada -->
-        <template v-if="!loadingStates[p.producto_id]">
-          <!-- Botón de agregar al carrito - con diferentes tamaños -->
-          <button 
-            class="w-full mt-1 sm:mt-2 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-semibold bg-gray-900 dark:bg-gray-700 text-white rounded-lg sm:rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-[1.02] hidden sm:flex items-center justify-center gap-1 sm:gap-2"
-            @click.prevent>
-            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Agregar al carrito
-          </button>
-
-          <!-- Botón pequeño para móvil -->
-          <button  @click="addToCart" 
-            class="w-full mt-1 py-1.5 text-[10px] font-semibold bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors duration-200 flex sm:hidden items-center justify-center gap-1"
-            @click.prevent>
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Agregar
-          </button>
-        </template>
       </div>
+  
+  
 
-      <!-- Indicador de producto nuevo -->
-      <div v-if="index < 2 && !loadingStates[p.producto_id]"
-        class="absolute top-2 right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-blue-500 text-white text-[8px] sm:text-xs font-bold rounded sm:rounded-lg z-20">
-        NUEVO
-      </div>
 
-      <!-- Efecto hover para desktop - solo cuando la imagen está cargada -->
-      <div v-if="!loadingStates[p.producto_id]"
-        class="absolute inset-0 rounded-xl sm:rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:block">
-        <div class="absolute inset-0 border-2 border-blue-500/20 rounded-xl sm:rounded-2xl" />
-        <div
-          class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent rounded-xl sm:rounded-2xl" />
-      </div>
-    </NuxtLink>
-  </div>
+    <!-- Indicador de producto nuevo -->
+    <div v-if="index < 2 && !loadingStates[p.producto_id]"
+      class="absolute top-2 right-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-blue-500 text-white text-[8px] sm:text-xs font-bold rounded sm:rounded-lg z-20">
+      NUEVO
+    </div>
+
+    <!-- Efecto hover para desktop - solo cuando la imagen está cargada -->
+    <div v-if="!loadingStates[p.producto_id]"
+      class="absolute inset-0 rounded-xl sm:rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:block">
+      <div class="absolute inset-0 border-2 border-blue-500/20 rounded-xl sm:rounded-2xl" />
+      <div
+        class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent rounded-xl sm:rounded-2xl" />
+    </div>
+   </NuxtLink>
+  </div> 
 </template>
 
 <style scoped>
