@@ -26,6 +26,23 @@
       <template #right>
         <UColorModeButton />
         
+        <!-- Botón de favoritos -->
+        <UButton 
+          icon="i-lucide-heart" 
+          color="neutral" 
+          variant="ghost" 
+          :to="favoritesLink" 
+          class="relative"
+          :ui="{ rounded: 'rounded-full' }"
+        >
+          <span 
+            v-if="favoritesStore.totalItems > 0" 
+            class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold"
+          >
+            {{ favoritesStore.totalItems }}
+          </span>
+        </UButton>
+        
         <!-- Botón del carrito -->
         <UButton 
           icon="i-lucide-shopping-cart" 
@@ -57,7 +74,7 @@
 
       <!-- Menú móvil -->
       <template #body>
-        <UNavigationMenu :items="items" orientation="vertical" class="-mx-2.5" />
+        <UNavigationMenu :items="mobileMenuItems" orientation="vertical" class="-mx-2.5" />
 
         <USeparator class="my-6" />
 
@@ -68,7 +85,7 @@
       </template>
     </UHeader>
 
-    <main class="items-center justify-center py-10">
+    <main class="items-center justify-center py-4">
       <slot />
     </main>
 
@@ -83,14 +100,16 @@
 
 <script setup>
 import { useCartStore } from '~/stores/cart'
+import { useFavoritesStore } from '~/stores/favorites'
 
 const cartStore = useCartStore()
+const favoritesStore = useFavoritesStore()
 const colorMode = useColorMode()
-const isDark = computed(() => colorMode.value === 'dark')
 
-const toggleDark = () => {
-  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
-}
+// Computed para el enlace de favoritos
+const favoritesLink = computed(() => {
+  return favoritesStore.totalItems > 0 ? '/catalog/favorites' : '#'
+})
 
 // Función para abrir el carrito
 const openCart = () => {
@@ -98,8 +117,34 @@ const openCart = () => {
   cartStore.openCart()
 }
 
-// Inicializar carrito al montar
+// Menú de navegación
+const items = [
+
+  {
+    label: 'Catálogo',
+    to: '/catalog',
+    icon: 'i-lucide-layout-grid'
+   },
+  // {
+  //   label: 'Categorias',
+  //   to: '/catalog/categories',
+  //   icon: 'i-lucide-flame'
+  // }
+]
+
+// Menú móvil (incluye el badge de favoritos)
+const mobileMenuItems = computed(() => {
+  return items.map(item => ({
+    ...item,
+    label: item.badge 
+      ? `${item.label} (${item.badge})`
+      : item.label
+  }))
+})
+
+// Inicializar stores al montar
 onMounted(() => {
   cartStore.initialize()
+  favoritesStore.initialize()
 })
 </script>

@@ -50,14 +50,23 @@ watch(() => props.productos, (newProductos) => {
     loadingStates.value[p.producto_id] = true
   })
 }, { immediate: true })
+
+
+const cartStore = useCartStore()
+
+// Función para abrir el carrito
+const openCart = () => {
+  cartStore.initialize() // Cargar datos antes de abrir
+  cartStore.openCart()
+}
 </script>
 
 <template>
   <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-    <NuxtLink v-for="(p, index) in productos" :key="p.producto_id" :to="`/${p.producto_id}`" :class="[
+    <NuxtLink v-for="(p, index) in productos" :key="p.producto_id" :to="`catalog/${p.producto_id}`" :class="[
       'group relative block bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm no-underline',
       !loadingStates[p.producto_id] ? 'hover:shadow-lg transition-all duration-300 hover:-translate-y-1' : 'pointer-events-none'
-    ]">
+    ]"> 
 
       <!-- Badge de descuento -->
       <div v-if="p.es_promocion && !loadingStates[p.producto_id]"
@@ -153,7 +162,7 @@ watch(() => props.productos, (newProductos) => {
         <!-- Botón de agregar al carrito - solo cuando la imagen está cargada -->
         <template v-if="!loadingStates[p.producto_id]">
           <!-- Botón de agregar al carrito - con diferentes tamaños -->
-          <button
+          <button 
             class="w-full mt-1 sm:mt-2 py-1.5 sm:py-2.5 text-[10px] sm:text-sm font-semibold bg-gray-900 dark:bg-gray-700 text-white rounded-lg sm:rounded-xl hover:bg-gray-800 dark:hover:bg-gray-600 transition-all duration-300 hover:scale-[1.02] hidden sm:flex items-center justify-center gap-1 sm:gap-2"
             @click.prevent>
             <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +173,7 @@ watch(() => props.productos, (newProductos) => {
           </button>
 
           <!-- Botón pequeño para móvil -->
-          <button
+          <button  @click="addToCart" 
             class="w-full mt-1 py-1.5 text-[10px] font-semibold bg-gray-900 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors duration-200 flex sm:hidden items-center justify-center gap-1"
             @click.prevent>
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
